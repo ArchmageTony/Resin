@@ -14,6 +14,7 @@ export type Platform = {
   reverse_proxy_fixed_account_header: string;
   allocation_policy: PlatformAllocationPolicy;
   passive_circuit_breaker_disabled: boolean;
+  latency_test_url: string;
   updated_at: string;
 };
 
@@ -34,6 +35,7 @@ export type PlatformCreateInput = {
   reverse_proxy_fixed_account_header?: string;
   allocation_policy?: PlatformAllocationPolicy;
   passive_circuit_breaker_disabled?: boolean;
+  latency_test_url?: string;
 };
 
 export type PlatformUpdateInput = {
@@ -46,6 +48,7 @@ export type PlatformUpdateInput = {
   reverse_proxy_fixed_account_header?: string;
   allocation_policy?: PlatformAllocationPolicy;
   passive_circuit_breaker_disabled?: boolean;
+  latency_test_url?: string;
 };
 
 export type PlatformLease = {

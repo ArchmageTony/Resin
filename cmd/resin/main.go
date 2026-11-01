@@ -353,6 +353,7 @@ func bootstrapTopology(
 	subManager *topology.SubscriptionManager,
 	pool *topology.GlobalNodePool,
 	envCfg *config.EnvConfig,
+	platformOpts ...func(*platform.Platform),
 ) error {
 	dbSubs, err := engine.ListSubscriptions()
 	if err != nil {
@@ -390,10 +391,28 @@ func bootstrapTopology(
 		if err != nil {
 			return err
 		}
+		for _, opt := range platformOpts {
+			opt(plat)
+		}
 		pool.RegisterPlatform(plat)
 	}
 	log.Printf("Loaded %d platforms from state.db", len(dbPlats))
 	return nil
+}
+
+// platformAdmissionWindowFrom builds the admission-window closure for
+// platform-probe-gated platforms: 2 × max_latency_test_interval, hot-following
+// RuntimeConfig updates. Zero return falls back to the platform default.
+func platformAdmissionWindowFrom(runtimeCfg *atomic.Pointer[config.RuntimeConfig]) func(*platform.Platform) {
+	return func(plat *platform.Platform) {
+		plat.SetLatencyAdmissionWindow(func() time.Duration {
+			cfg := runtimeConfigSnapshot(runtimeCfg)
+			if cfg == nil {
+				return 0
+			}
+			return 2 * time.Duration(cfg.MaxLatencyTestInterval)
+		})
+	}
 }
 
 func validatePersistedPlatformNamesForV1(platformsInDB []model.Platform) error {

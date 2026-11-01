@@ -32,6 +32,7 @@ type PlatformResponse struct {
 	ReverseProxyFixedAccountHeader   string   `json:"reverse_proxy_fixed_account_header"`
 	AllocationPolicy                 string   `json:"allocation_policy"`
 	PassiveCircuitBreakerDisabled    bool     `json:"passive_circuit_breaker_disabled"`
+	LatencyTestURL                   string   `json:"latency_test_url"`
 	UpdatedAt                        string   `json:"updated_at"`
 }
 
@@ -50,6 +51,7 @@ func platformToResponse(p model.Platform) PlatformResponse {
 		ReverseProxyFixedAccountHeader:   fixedHeader,
 		AllocationPolicy:                 p.AllocationPolicy,
 		PassiveCircuitBreakerDisabled:    p.PassiveCircuitBreakerDisabled,
+		LatencyTestURL:                   p.LatencyTestURL,
 		UpdatedAt:                        time.Unix(0, p.UpdatedAtNs).UTC().Format(time.RFC3339Nano),
 	}
 }
@@ -76,6 +78,7 @@ type platformConfig struct {
 	ReverseProxyFixedAccountHeader   string
 	AllocationPolicy                 string
 	PassiveCircuitBreakerDisabled    bool
+	LatencyTestURL                   string
 }
 
 func normalizePlatformMissAction(raw string) string {
@@ -121,6 +124,23 @@ func platformConfigFromModel(mp model.Platform) platformConfig {
 		ReverseProxyFixedAccountHeader:   normalizeHeaderFieldName(mp.ReverseProxyFixedAccountHeader),
 		AllocationPolicy:                 mp.AllocationPolicy,
 		PassiveCircuitBreakerDisabled:    mp.PassiveCircuitBreakerDisabled,
+		LatencyTestURL:                   mp.LatencyTestURL,
+	}
+}
+
+// platformAdmissionWindow returns the admission-window closure for
+// platform-probe-gated platforms: 2 × max_latency_test_interval, hot-following
+// RuntimeConfig updates. A zero return falls back to the platform package
+// default window.
+func (s *ControlPlaneService) platformAdmissionWindow() func() time.Duration {
+	return func() time.Duration {
+		if s == nil || s.RuntimeCfg == nil {
+			return 0
+		}
+		if cfg := s.RuntimeCfg.Load(); cfg != nil {
+			return 2 * time.Duration(cfg.MaxLatencyTestInterval)
+		}
+		return 0
 	}
 }
 
@@ -136,6 +156,7 @@ func (cfg platformConfig) toModel(id string, updatedAtNs int64) model.Platform {
 		ReverseProxyFixedAccountHeader:   cfg.ReverseProxyFixedAccountHeader,
 		AllocationPolicy:                 cfg.AllocationPolicy,
 		PassiveCircuitBreakerDisabled:    cfg.PassiveCircuitBreakerDisabled,
+		LatencyTestURL:                   cfg.LatencyTestURL,
 		UpdatedAtNs:                      updatedAtNs,
 	}
 }
@@ -145,7 +166,7 @@ func (cfg platformConfig) toRuntime(id string) (*platform.Platform, error) {
 	if err != nil {
 		return nil, err
 	}
-	return platform.NewConfiguredPlatform(
+	plat := platform.NewConfiguredPlatform(
 		id,
 		cfg.Name,
 		compiledRegexFilters,
@@ -156,7 +177,9 @@ func (cfg platformConfig) toRuntime(id string) (*platform.Platform, error) {
 		cfg.ReverseProxyFixedAccountHeader,
 		cfg.AllocationPolicy,
 		cfg.PassiveCircuitBreakerDisabled,
-	), nil
+	)
+	plat.LatencyTestURL = cfg.LatencyTestURL
+	return plat, nil
 }
 
 func validatePlatformMissAction(raw string) *ServiceError {
@@ -255,6 +278,22 @@ func setPlatformAllocationPolicy(cfg *platformConfig, policy string) *ServiceErr
 	return nil
 }
 
+// setPlatformLatencyTestURL normalizes and validates the optional platform
+// probe URL. Empty means "platform-specific probing disabled". Validation
+// mirrors the global latency_test_url rule in validateRuntimeConfig.
+func setPlatformLatencyTestURL(cfg *platformConfig, raw string) *ServiceError {
+	v := strings.TrimSpace(raw)
+	if v == "" {
+		cfg.LatencyTestURL = ""
+		return nil
+	}
+	if _, verr := parseHTTPAbsoluteURL("latency_test_url", v); verr != nil {
+		return verr
+	}
+	cfg.LatencyTestURL = v
+	return nil
+}
+
 func validatePlatformConfig(cfg *platformConfig, validateRegionFilters bool) *ServiceError {
 	if validateRegionFilters {
 		if err := platform.ValidateRegionFilters(cfg.RegionFilters); err != nil {
@@ -276,6 +315,7 @@ func (s *ControlPlaneService) compileAndUpsertPlatform(id string, cfg platformCo
 	if err != nil {
 		return model.Platform{}, nil, invalidArg(err.Error())
 	}
+	plat.SetLatencyAdmissionWindow(s.platformAdmissionWindow())
 	mp := cfg.toModel(id, time.Now().UnixNano())
 	if err := s.Engine.UpsertPlatform(mp); err != nil {
 		if errors.Is(err, state.ErrConflict) {
@@ -334,6 +374,7 @@ type CreatePlatformRequest struct {
 	ReverseProxyFixedAccountHeader   *string  `json:"reverse_proxy_fixed_account_header"`
 	AllocationPolicy                 *string  `json:"allocation_policy"`
 	PassiveCircuitBreakerDisabled    *bool    `json:"passive_circuit_breaker_disabled"`
+	LatencyTestURL                   *string  `json:"latency_test_url"`
 }
 
 // CreatePlatform creates a new platform.
@@ -390,6 +431,11 @@ func (s *ControlPlaneService) CreatePlatform(req CreatePlatformRequest) (*Platfo
 	}
 	if req.PassiveCircuitBreakerDisabled != nil {
 		cfg.PassiveCircuitBreakerDisabled = *req.PassiveCircuitBreakerDisabled
+	}
+	if req.LatencyTestURL != nil {
+		if err := setPlatformLatencyTestURL(&cfg, *req.LatencyTestURL); err != nil {
+			return nil, err
+		}
 	}
 	if err := validatePlatformConfig(&cfg, true); err != nil {
 		return nil, err
@@ -507,6 +553,13 @@ func (s *ControlPlaneService) UpdatePlatform(id string, patchJSON json.RawMessag
 		return nil, err
 	} else if ok {
 		cfg.PassiveCircuitBreakerDisabled = disabled
+	}
+	if u, ok, err := patch.optionalString("latency_test_url"); err != nil {
+		return nil, err
+	} else if ok {
+		if err := setPlatformLatencyTestURL(&cfg, u); err != nil {
+			return nil, err
+		}
 	}
 	if err := validatePlatformConfig(&cfg, regionFiltersPatched); err != nil {
 		return nil, err

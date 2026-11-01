@@ -287,7 +287,7 @@ func (r *Router) tryLeaseSameIPRotation(
 		r.pool,
 		current.EgressIP,
 		targetDomain,
-		r.authorities(),
+		r.authoritiesFor(plat),
 		r.p2cWindow(),
 	)
 	if !ok {
@@ -395,7 +395,7 @@ func (r *Router) selectLiveRandomRoute(
 ) (node.Hash, *node.NodeEntry, error) {
 	var lastMissing node.Hash
 	for i := 0; i < livePickAttempts; i++ {
-		h, err := randomRoute(plat, stats, r.pool, targetDomain, r.authorities(), r.p2cWindow())
+		h, err := randomRoute(plat, stats, r.pool, targetDomain, r.authoritiesFor(plat), r.p2cWindow())
 		if err != nil {
 			return node.Zero, nil, err
 		}

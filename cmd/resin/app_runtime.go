@@ -237,7 +237,8 @@ func (a *resinApp) wireRetryDownloader(retryDL *netutil.RetryDownloader) {
 
 func (a *resinApp) bootstrapFromPersistence(engine *state.StateEngine) error {
 	// Phase 6: Bootstrap topology data from persistence.
-	if err := bootstrapTopology(engine, a.topoRuntime.subManager, a.topoRuntime.pool, a.envCfg); err != nil {
+	if err := bootstrapTopology(engine, a.topoRuntime.subManager, a.topoRuntime.pool, a.envCfg,
+		platformAdmissionWindowFrom(a.runtimeCfg)); err != nil {
 		return err
 	}
 

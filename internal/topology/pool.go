@@ -286,6 +286,13 @@ func (p *GlobalNodePool) platformSnapshot() []*platform.Platform {
 	return platforms
 }
 
+// GeoLookup exposes the pool's GeoIP lookup function for callers outside the
+// package that need to evaluate platform region filters (e.g. the platform
+// probe scanloop).
+func (p *GlobalNodePool) GeoLookup() platform.GeoLookupFunc {
+	return p.geoLookup
+}
+
 // MakeSubLookup builds the SubLookupFunc closure for MatchRegexs / tag resolution.
 func (p *GlobalNodePool) MakeSubLookup() node.SubLookupFunc {
 	return func(subID string, hash node.Hash) (string, bool, []string, bool) {

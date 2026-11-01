@@ -524,7 +524,7 @@ func TestQueuedAsyncProbe_SkipsNodeDisabledBeforeExecution(t *testing.T) {
 	})
 	defer mgr.Stop()
 
-	if ok := mgr.enqueueProbe(hash, probeTaskKindEgress, probePriorityNormal); !ok {
+	if ok := mgr.enqueueProbe(hash, probeTaskKindEgress, probePriorityNormal, ""); !ok {
 		t.Fatal("enqueue should succeed")
 	}
 
@@ -635,10 +635,10 @@ func TestProbeQueue_DequeueChoosesNormalWhenSelectorRequests(t *testing.T) {
 	})
 	defer mgr.Stop()
 
-	if ok := mgr.enqueueProbe(hashHigh, probeTaskKindEgress, probePriorityHigh); !ok {
+	if ok := mgr.enqueueProbe(hashHigh, probeTaskKindEgress, probePriorityHigh, ""); !ok {
 		t.Fatal("enqueue high should succeed")
 	}
-	if ok := mgr.enqueueProbe(hashNormal, probeTaskKindEgress, probePriorityNormal); !ok {
+	if ok := mgr.enqueueProbe(hashNormal, probeTaskKindEgress, probePriorityNormal, ""); !ok {
 		t.Fatal("enqueue normal should succeed")
 	}
 
@@ -690,13 +690,13 @@ func TestProbeQueue_HighUpgradeOfQueuedNormalRunsFirstWithoutExtraRun(t *testing
 	})
 	defer mgr.Stop()
 
-	if ok := mgr.enqueueProbe(hashOther, probeTaskKindEgress, probePriorityNormal); !ok {
+	if ok := mgr.enqueueProbe(hashOther, probeTaskKindEgress, probePriorityNormal, ""); !ok {
 		t.Fatal("enqueue other normal should succeed")
 	}
-	if ok := mgr.enqueueProbe(hashTarget, probeTaskKindEgress, probePriorityNormal); !ok {
+	if ok := mgr.enqueueProbe(hashTarget, probeTaskKindEgress, probePriorityNormal, ""); !ok {
 		t.Fatal("enqueue target normal should succeed")
 	}
-	if ok := mgr.enqueueProbe(hashTarget, probeTaskKindEgress, probePriorityHigh); !ok {
+	if ok := mgr.enqueueProbe(hashTarget, probeTaskKindEgress, probePriorityHigh, ""); !ok {
 		t.Fatal("enqueue target high upgrade should add a high-priority token")
 	}
 
@@ -744,10 +744,10 @@ func TestProbeQueue_FullDropsWithoutBlocking(t *testing.T) {
 		QueueCapacity: 1,
 	})
 
-	if ok := mgr.enqueueProbe(hash1, probeTaskKindEgress, probePriorityNormal); !ok {
+	if ok := mgr.enqueueProbe(hash1, probeTaskKindEgress, probePriorityNormal, ""); !ok {
 		t.Fatal("first enqueue should succeed")
 	}
-	if ok := mgr.enqueueProbe(hash2, probeTaskKindEgress, probePriorityNormal); ok {
+	if ok := mgr.enqueueProbe(hash2, probeTaskKindEgress, probePriorityNormal, ""); ok {
 		t.Fatal("second enqueue should be dropped when queue is full")
 	}
 }

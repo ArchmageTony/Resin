@@ -89,11 +89,14 @@ type probeTaskKind uint8
 const (
 	probeTaskKindEgress probeTaskKind = iota
 	probeTaskKindLatency
+	probeTaskKindPlatformLatency
 )
 
 type probeTaskKey struct {
 	hash node.Hash
 	kind probeTaskKind
+	// platformID scopes platform-specific latency probes; "" for global kinds.
+	platformID string
 }
 
 type probeTask struct {
@@ -292,6 +295,12 @@ func (m *ProbeManager) Start() {
 		scanloop.Run(m.stopCh, scanloop.DefaultMinInterval, scanloop.DefaultJitterRange, m.scanLatency)
 	}()
 
+	m.wg.Add(1)
+	go func() {
+		defer m.wg.Done()
+		scanloop.Run(m.stopCh, scanloop.DefaultMinInterval, scanloop.DefaultJitterRange, m.scanPlatformLatency)
+	}()
+
 	for i := 0; i < m.workerCount; i++ {
 		m.wg.Add(1)
 		go func() {
@@ -319,13 +328,13 @@ func (m *ProbeManager) Stop() {
 // TriggerImmediateEgressProbe enqueues an async egress probe for a node.
 // Caller returns immediately.
 func (m *ProbeManager) TriggerImmediateEgressProbe(hash node.Hash) {
-	m.enqueueProbe(hash, probeTaskKindEgress, probePriorityNormal)
+	m.enqueueProbe(hash, probeTaskKindEgress, probePriorityNormal, "")
 }
 
 // TriggerImmediateLatencyProbe enqueues an async latency probe for a node.
 // Caller returns immediately.
 func (m *ProbeManager) TriggerImmediateLatencyProbe(hash node.Hash) {
-	m.enqueueProbe(hash, probeTaskKindLatency, probePriorityNormal)
+	m.enqueueProbe(hash, probeTaskKindLatency, probePriorityNormal, "")
 }
 
 // EgressProbeResult holds the results of a synchronous egress probe.
@@ -466,7 +475,7 @@ func (m *ProbeManager) scanEgress() {
 			}
 		}
 
-		m.enqueueProbe(h, probeTaskKindEgress, probePriorityNormal)
+		m.enqueueProbe(h, probeTaskKindEgress, probePriorityNormal, "")
 
 		return true
 	})
@@ -509,7 +518,7 @@ func (m *ProbeManager) scanLatency() {
 			return true
 		}
 
-		m.enqueueProbe(h, probeTaskKindLatency, probePriorityNormal)
+		m.enqueueProbe(h, probeTaskKindLatency, probePriorityNormal, "")
 
 		return true
 	})
@@ -546,11 +555,13 @@ func (m *ProbeManager) executeTask(task probeTask) {
 		m.probeEgress(task.key.hash, entry)
 	case probeTaskKindLatency:
 		m.probeLatency(task.key.hash, entry, m.currentLatencyTestURL())
+	case probeTaskKindPlatformLatency:
+		m.probePlatformLatency(task.key.hash, task.key.platformID)
 	}
 }
 
-func (m *ProbeManager) enqueueProbe(hash node.Hash, kind probeTaskKind, priority probePriority) bool {
-	key := probeTaskKey{hash: hash, kind: kind}
+func (m *ProbeManager) enqueueProbe(hash node.Hash, kind probeTaskKind, priority probePriority, platformID string) bool {
+	key := probeTaskKey{hash: hash, kind: kind, platformID: platformID}
 	state, _ := m.taskStates.LoadOrCompute(key, func() (*probeTaskState, bool) {
 		return &probeTaskState{}, false
 	})

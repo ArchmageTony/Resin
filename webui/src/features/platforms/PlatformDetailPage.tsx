@@ -604,6 +604,18 @@ export function PlatformDetailPage() {
                   </div>
 
                   <div className="field-group">
+                    <label className="field-label" htmlFor="detail-edit-latency-test-url">
+                      {t("平台专属探测 URL")}
+                    </label>
+                    <Input
+                      id="detail-edit-latency-test-url"
+                      placeholder={t("留空则使用默认行为，例如 https://api.example-target.com/v1/models")}
+                      invalid={Boolean(editForm.formState.errors.latency_test_url)}
+                      {...editForm.register("latency_test_url")}
+                    />
+                  </div>
+
+                  <div className="field-group">
                     <label className="field-label" htmlFor="detail-edit-empty-account-behavior">
                       {t("反向代理账号为空行为")}
                     </label>

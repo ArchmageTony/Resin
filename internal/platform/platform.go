@@ -41,6 +41,12 @@ type Platform struct {
 	AllocationPolicy                 AllocationPolicy
 	PassiveCircuitBreakerDisabled    bool
 
+	// Optional platform-specific latency probe URL ("" = disabled). See probe_url.go.
+	LatencyTestURL string
+
+	// Platform-probe support state (per-node attempt timestamps, admission window).
+	probe platformProbeState
+
 	// Routable view & its lock.
 	// viewMu serializes both FullRebuild and NotifyDirty.
 	view   *RoutableView
@@ -60,6 +66,7 @@ func NewPlatformWithTagFilter(id, name string, regexFilters node.TagFilter, regi
 		Name:          name,
 		RegexFilters:  regexFilters,
 		RegionFilters: regionFilters,
+		probe:         newPlatformProbeState(),
 		view:          NewRoutableView(),
 	}
 }
@@ -149,8 +156,9 @@ func (p *Platform) evaluateNode(
 		}
 	}
 
-	// 5. Has at least one latency record.
-	if !entry.HasLatency() {
+	// 5. Latency admission: platforms with a probe URL require a recent
+	// successful sample on the platform probe domain; others require any record.
+	if !p.meetsLatencyAdmission(entry) {
 		return false
 	}
 

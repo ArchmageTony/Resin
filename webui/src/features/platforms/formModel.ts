@@ -38,6 +38,21 @@ export const platformFormSchema = z.object({
   reverse_proxy_fixed_account_header: z.string().optional(),
   allocation_policy: z.enum(allocationPolicies),
   passive_circuit_breaker_disabled: z.boolean(),
+  latency_test_url: z.string().refine(
+    (value) => {
+      const trimmed = value.trim();
+      if (trimmed === "") {
+        return true; // 留空 = 不启用平台专属探测
+      }
+      try {
+        const parsed = new URL(trimmed);
+        return parsed.protocol === "http:" || parsed.protocol === "https:";
+      } catch {
+        return false;
+      }
+    },
+    { message: "专属探测 URL 留空则不启用；填写时必须是 http/https 绝对地址" },
+  ),
 }).superRefine((value, ctx) => {
   if (
     value.reverse_proxy_empty_account_behavior === "FIXED_HEADER" &&
@@ -63,6 +78,7 @@ export const defaultPlatformFormValues: PlatformFormValues = {
   reverse_proxy_fixed_account_header: "Authorization",
   allocation_policy: "BALANCED",
   passive_circuit_breaker_disabled: false,
+  latency_test_url: "",
 };
 
 export function platformToFormValues(platform: Platform): PlatformFormValues {
@@ -79,6 +95,7 @@ export function platformToFormValues(platform: Platform): PlatformFormValues {
     reverse_proxy_fixed_account_header: platform.reverse_proxy_fixed_account_header,
     allocation_policy: platform.allocation_policy,
     passive_circuit_breaker_disabled: platform.passive_circuit_breaker_disabled,
+    latency_test_url: platform.latency_test_url ?? "",
   };
 }
 
@@ -92,6 +109,7 @@ function toPlatformPayloadBase(values: PlatformFormValues) {
     reverse_proxy_fixed_account_header: parseHeaderLines(values.reverse_proxy_fixed_account_header).join("\n"),
     allocation_policy: values.allocation_policy,
     passive_circuit_breaker_disabled: values.passive_circuit_breaker_disabled,
+    latency_test_url: values.latency_test_url?.trim() ?? "",
   };
 }
 
