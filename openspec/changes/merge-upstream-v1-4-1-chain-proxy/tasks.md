@@ -16,8 +16,8 @@
 
 ## 3. 提交与推送
 
-- [ ] 3.1 以 merge commit 提交（消息注明 v1.4.0+v1.4.1 合并与迁移重编号决策），`git log --oneline -3` 可见 merge 节点；`openspec/changes/merge-upstream-v1-4-1-chain-proxy/` 四个 artifact 一并入库
-- [ ] 3.2 推送 origin master，`git status` 干净、`git rev-parse origin/master` 等于本地 HEAD
+- [x] 3.1 以 merge commit 提交（消息注明 v1.4.0+v1.4.1 合并与迁移重编号决策），`git log --oneline -3` 可见 merge 节点；`openspec/changes/merge-upstream-v1-4-1-chain-proxy/` 四个 artifact 一并入库
+- [x] 3.2 推送 origin master，`git status` 干净、`git rev-parse origin/master` 等于本地 HEAD
 
 ## 4. bero 部署验证（design Migration Plan）
 
