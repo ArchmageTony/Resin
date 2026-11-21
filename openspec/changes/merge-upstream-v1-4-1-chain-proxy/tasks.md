@@ -21,9 +21,9 @@
 
 ## 4. bero 部署验证（design Migration Plan）
 
-- [ ] 4.1 部署前备份：bero 上备份 `resin_state` / `resin_cache` volumes（或确认外部备份计划覆盖今日快照），记录备份文件路径
-- [ ] 4.2 `docker compose build && docker compose up -d`，`docker logs` 观察启动迁移日志，确认 state `10 → 11`、cache `2 → 3` 顺延应用、无 dirty 报错；python3 只读复查 `schema_migrations` 值为 `(11, 0)` / `(3, 0)`，`subscriptions` 含 `chain_proxy`/`chain_relay` 列且默认全 0
-- [ ] 4.3 功能冒烟：代理端口连通性正常（平台探测 URL 行为不回退），WebUI 订阅页出现链式代理控件且默认关闭、节点池显示 relay 绑定列、请求日志无 relay 字段报错；WebUI 平台页探测 URL 表单仍可保存
+- [x] 4.1 部署前备份：bero 上备份 `resin_state` / `resin_cache` volumes（或确认外部备份计划覆盖今日快照），记录备份文件路径
+- [x] 4.2 `docker compose build && docker compose up -d`，`docker logs` 观察启动迁移日志，确认 state `10 → 11`、cache `2 → 3` 顺延应用、无 dirty 报错；python3 只读复查 `schema_migrations` 值为 `(11, 0)` / `(3, 0)`，`subscriptions` 含 `chain_proxy`/`chain_relay` 列且默认全 0
+- [x] 4.3 功能冒烟：代理端口连通性正常（平台探测 URL 行为不回退），WebUI 订阅页出现链式代理控件且默认关闭、节点池显示 relay 绑定列、请求日志无 relay 字段报错；WebUI 平台页探测 URL 表单仍可保存
 
 ## Workflow follow-up
 
