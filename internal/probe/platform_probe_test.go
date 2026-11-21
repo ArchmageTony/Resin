@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Resinat/Resin/internal/netutil"
 	"github.com/Resinat/Resin/internal/node"
 	"github.com/Resinat/Resin/internal/platform"
 	"github.com/Resinat/Resin/internal/testutil"
@@ -121,9 +122,9 @@ func TestProbePlatformLatency_Success(t *testing.T) {
 	var fetchedURL string
 	mgr := NewProbeManager(ProbeConfig{
 		Pool: pool,
-		Fetcher: func(_ node.Hash, url string) ([]byte, time.Duration, error) {
+		Fetcher: func(_ node.Hash, url string) (netutil.OutboundHTTPResult, error) {
 			fetchedURL = url
-			return []byte("ok"), 25 * time.Millisecond, nil
+			return netutil.OutboundHTTPResult{Body: []byte("ok"), Latency: 25 * time.Millisecond}, nil
 		},
 	})
 	defer mgr.Stop()
@@ -161,8 +162,8 @@ func TestProbePlatformLatency_FailureDoesNotFeedBreaker(t *testing.T) {
 
 	mgr := NewProbeManager(ProbeConfig{
 		Pool: pool,
-		Fetcher: func(_ node.Hash, _ string) ([]byte, time.Duration, error) {
-			return nil, 0, errors.New("connection refused")
+		Fetcher: func(_ node.Hash, _ string) (netutil.OutboundHTTPResult, error) {
+			return netutil.OutboundHTTPResult{}, errors.New("connection refused")
 		},
 	})
 	defer mgr.Stop()

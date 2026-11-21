@@ -231,6 +231,21 @@ Note: Once enabled, requests without authentication information are rejected ins
     "socks5h://user:pass@example.com:1080 (SOCKS5 + remote DNS)",
   "1.2.3.4:8080:user:pass（兼容简写）": "1.2.3.4:8080:user:pass (compat shorthand)",
   "临时订阅": "Temporary Subscription",
+  "链式代理": "Proxy chain",
+  "（经过 <node/>）": "(via <node/>)",
+  "（经过链式代理<info/>）": "(via proxy chain<info/>)",
+  "链式代理已启用，但本次请求未能记录线路节点。部分协议或连接建立失败时可能出现此情况。":
+    "Proxy chaining is enabled, but the relay was not recorded for this request. This can happen with some protocols or when connection setup fails.",
+  "线路": "Relay",
+  "线路：": "Relay: ",
+  "未分配": "Unassigned",
+  "落地": "Exit",
+  "允许作为线路节点": "Allow use as a relay node",
+  "仅通过线路节点落地": "Exit only through relay nodes",
+  "线路节点负责中转，落地节点负责最终出口。节点属于多个订阅时，线路节点设置优先。":
+    "Relay nodes provide transit; exit nodes provide the final outbound connection. Relay settings take priority for nodes shared by multiple subscriptions.",
+  "修改链式代理角色可能中断已有连接。": "Changing the proxy chain role may interrupt existing connections.",
+  "关": "Off",
   "临时节点驱逐延迟": "Temporary Node Eviction Delay",
   "平台列表": "Platform List",
   "平台详情": "Platform Details",
@@ -567,7 +582,7 @@ Note: Once enabled, requests without authentication information are rejected ins
   "永久删除当前平台及其配置，操作不可撤销。":
     "Permanently delete this platform and its config. This action cannot be undone.",
   "正常": "Normal",
-  "未检查": "Not checked",
+  "检查中": "Checking",
   "正则": "Regex",
   "中文": "中文",
   "重新整理当前平台可用节点，不会修改配置。":

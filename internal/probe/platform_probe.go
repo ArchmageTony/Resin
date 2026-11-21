@@ -92,12 +92,13 @@ func (m *ProbeManager) probePlatformLatency(hash node.Hash, platformID string) {
 // performPlatformLatencyProbe fetches the platform probe URL through the node
 // and writes the result back through the platform-scoped record path.
 func (m *ProbeManager) performPlatformLatencyProbe(hash node.Hash, plat *platform.Platform) error {
-	_, latency, err := m.fetcher(hash, plat.LatencyTestURL)
+	res, err := m.fetcher(hash, plat.LatencyTestURL)
 	if err != nil {
 		m.pool.RecordPlatformLatency(hash, plat, nil)
 		return err
 	}
 
+	latency := res.Latency
 	m.pool.RecordPlatformLatency(hash, plat, &latency)
 	return nil
 }
